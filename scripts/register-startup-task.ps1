@@ -20,7 +20,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
     -Settings $settings -Description "Auto-start backend + Cloudflare Tunnel SENTIKEN Mobile saat login." `
-    -Force
+    -Force -ErrorAction Stop
 
 Write-Output "Task '$TaskName' terdaftar. Backend + tunnel akan otomatis jalan tiap kali kamu login ke Windows."
 Write-Output "Untuk menjalankan sekarang juga tanpa logout/login: Start-ScheduledTask -TaskName '$TaskName'"
