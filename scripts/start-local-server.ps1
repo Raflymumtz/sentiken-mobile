@@ -54,27 +54,32 @@ if (-not (Test-BackendHealthy)) {
 Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force
 
 # 3) Jalankan cloudflared quick tunnel, tangkap URL barunya dari log.
-$TunnelLog = Join-Path $LogDir "cloudflared.log"
-Remove-Item $TunnelLog -ErrorAction SilentlyContinue
+$TunnelOutLog = Join-Path $LogDir "cloudflared.out.log"
 $TunnelErrLog = Join-Path $LogDir "cloudflared.err.log"
+Remove-Item $TunnelOutLog, $TunnelErrLog -ErrorAction SilentlyContinue
+# Catatan: --logfile TIDAK dipakai karena argumennya terpotong bila path
+# proyek mengandung spasi (mis. "Task A6444 Sistem Informasi"). Redirect
+# stream stdout/stderr di bawah ini tidak bermasalah dengan spasi.
 Start-Process -FilePath $CloudflaredExe `
-    -ArgumentList "tunnel", "--url", "http://localhost:8000", "--logfile", $TunnelLog `
+    -ArgumentList "tunnel", "--url", "http://localhost:8000" `
     -WindowStyle Hidden `
-    -RedirectStandardOutput (Join-Path $LogDir "cloudflared.out.log") `
+    -RedirectStandardOutput $TunnelOutLog `
     -RedirectStandardError $TunnelErrLog
 
 $tunnelUrl = $null
 $attempts = 0
 while (-not $tunnelUrl -and $attempts -lt 30) {
     Start-Sleep -Seconds 2
-    if (Test-Path $TunnelLog) {
-        $match = Select-String -Path $TunnelLog -Pattern "https://[a-z0-9-]+\.trycloudflare\.com" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($match) { $tunnelUrl = $match.Matches[0].Value }
+    foreach ($logFile in @($TunnelErrLog, $TunnelOutLog)) {
+        if (-not $tunnelUrl -and (Test-Path $logFile)) {
+            $match = Select-String -Path $logFile -Pattern "https://[a-z0-9-]+\.trycloudflare\.com" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($match) { $tunnelUrl = $match.Matches[0].Value }
+        }
     }
     $attempts++
 }
 if (-not $tunnelUrl) {
-    throw "Gagal mendapatkan URL tunnel dalam 60 detik. Cek $TunnelLog"
+    throw "Gagal mendapatkan URL tunnel dalam 60 detik. Cek $TunnelErrLog"
 }
 Write-Output "Tunnel URL: $tunnelUrl"
 
