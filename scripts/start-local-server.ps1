@@ -56,11 +56,12 @@ Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force
 # 3) Jalankan cloudflared quick tunnel, tangkap URL barunya dari log.
 $TunnelLog = Join-Path $LogDir "cloudflared.log"
 Remove-Item $TunnelLog -ErrorAction SilentlyContinue
+$TunnelErrLog = Join-Path $LogDir "cloudflared.err.log"
 Start-Process -FilePath $CloudflaredExe `
-    -ArgumentList "tunnel", "--url", "http://localhost:8000" `
+    -ArgumentList "tunnel", "--url", "http://localhost:8000", "--logfile", $TunnelLog `
     -WindowStyle Hidden `
-    -RedirectStandardOutput $TunnelLog `
-    -RedirectStandardError $TunnelLog
+    -RedirectStandardOutput (Join-Path $LogDir "cloudflared.out.log") `
+    -RedirectStandardError $TunnelErrLog
 
 $tunnelUrl = $null
 $attempts = 0
