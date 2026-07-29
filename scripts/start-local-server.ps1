@@ -87,7 +87,11 @@ Write-Output "Tunnel URL: $tunnelUrl"
 $configPath = Join-Path $MobileDir "remote-config.json"
 $timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:sszzz")
 $json = @{ api_url = "$tunnelUrl/api/v1"; updated_at = $timestamp } | ConvertTo-Json
-Set-Content -Path $configPath -Value $json -Encoding utf8
+# Set-Content -Encoding utf8 di Windows PowerShell 5.1 menulis BOM (byte
+# 0xEF 0xBB 0xBF) di awal file, yang membuat JSON.parse gagal di sisi
+# aplikasi mobile (JavaScript tidak menerima BOM di awal JSON). Pakai
+# System.IO.File langsung dengan encoding UTF-8 tanpa BOM.
+[System.IO.File]::WriteAllText($configPath, $json, (New-Object System.Text.UTF8Encoding($false)))
 
 Push-Location $RepoRoot
 git add mobile/remote-config.json

@@ -22,7 +22,14 @@ async function fetchRemoteApiUrl(): Promise<string | null> {
       signal: controller.signal,
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as { api_url?: string };
+    // Pakai .text() + JSON.parse manual (bukan response.json()) supaya kita
+    // bisa buang BOM di awal file bila ada -- JSON.parse standar akan error
+    // pada karakter BOM (U+FEFF) di posisi pertama.
+    let rawText = await response.text();
+    if (rawText.charCodeAt(0) === 0xfeff) {
+      rawText = rawText.slice(1);
+    }
+    const data = JSON.parse(rawText) as { api_url?: string };
     if (typeof data.api_url === "string" && data.api_url.trim().length > 0) {
       return data.api_url.trim();
     }
