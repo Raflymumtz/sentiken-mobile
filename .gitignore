@@ -14,6 +14,7 @@ htmlcov/
 backend/storage/
 backend/*.db
 backend/alembic_*.db
+backend/*.log
 
 # --- Mobile (Node / Expo) --------------------------------------------------------
 mobile/node_modules/
