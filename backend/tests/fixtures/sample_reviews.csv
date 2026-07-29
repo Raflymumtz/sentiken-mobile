@@ -1,0 +1,7 @@
+reviewId,userName,userImage,content,score,thumbsUpCount,at,appVersion
+tf-review-001,Pengguna Uji Satu,https://example.local/avatar1.png,Aplikasi sangat membantu dan mudah digunakan,5,10,2026-01-15,3.2.0
+tf-review-002,Pengguna Uji Dua,https://example.local/avatar2.png,Sering error saat login jadi susah dipakai,2,3,2026-01-20,3.2.0
+,Pengguna Uji Tiga,,Lumayan tapi kadang lambat,3,0,2026-02-01,3.1.0
+tf-review-004,Pengguna Uji Empat,,,4,1,2026-02-05,3.1.0
+tf-review-005,Pengguna Uji Lima,,Bagus sekali pelayanannya cepat tanggap,5,7,bukan-tanggal,3.2.0
+tf-review-006,Pengguna Uji Enam,,Skor tidak valid untuk pengujian,99,0,2026-02-10,3.2.0

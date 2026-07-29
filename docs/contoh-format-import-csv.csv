@@ -1,0 +1,3 @@
+reviewId,userName,userImage,content,score,thumbsUpCount,at,appVersion
+contoh-id-1,contoh-nama-pengguna,https://contoh.com/avatar.png,<isi ulasan Anda di sini>,5,0,2026-01-01,1.0.0
+contoh-id-2,contoh-nama-pengguna-2,,<isi ulasan Anda di sini>,3,2,2026-01-15,1.0.0

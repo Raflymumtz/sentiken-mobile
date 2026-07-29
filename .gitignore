@@ -1,0 +1,39 @@
+# --- Environment / secrets ---------------------------------------------------
+.env
+*.env.local
+
+# --- Backend (Python) ----------------------------------------------------------
+backend/.venv/
+backend/venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+backend/storage/
+backend/*.db
+backend/alembic_*.db
+
+# --- Mobile (Node / Expo) --------------------------------------------------------
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/*.log
+mobile/coverage/
+# android/ dihasilkan ulang oleh `expo prebuild`, jangan commit
+mobile/android/
+mobile/*.apk
+
+# --- Docker -----------------------------------------------------------------------
+**/storage/models/*
+**/storage/exports/*
+!**/storage/models/.gitkeep
+!**/storage/exports/.gitkeep
+
+# --- OS / editor -------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
