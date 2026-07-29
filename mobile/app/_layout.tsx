@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { initApiClient } from "@/lib/api/client";
 import { useLogin } from "@/lib/hooks/useAuth";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useThemeColors } from "@/lib/hooks/useThemeColors";
@@ -27,14 +28,21 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const loginMutation = useLogin();
   const [autoLoginFailed, setAutoLoginFailed] = useState(false);
+  const [isApiReady, setIsApiReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Resolve URL backend dari GitHub (bisa berubah kalau tunnel di-restart di
+  // laptop) sebelum request lain (termasuk auto-login) dijalankan.
+  useEffect(() => {
+    initApiClient({ force: retryCount > 0 }).finally(() => setIsApiReady(true));
+  }, [retryCount]);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
   useEffect(() => {
-    if (!isHydrated || accessToken) return;
+    if (!isApiReady || !isHydrated || accessToken) return;
 
     if (!AUTO_LOGIN_EMAIL || !AUTO_LOGIN_PASSWORD) {
       setAutoLoginFailed(true);
@@ -47,7 +55,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       { onError: () => setAutoLoginFailed(true) },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHydrated, accessToken, retryCount]);
+  }, [isApiReady, isHydrated, accessToken, retryCount]);
 
   useEffect(() => {
     if (!isHydrated || !accessToken) return;
@@ -56,7 +64,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [accessToken, isHydrated, segments, router]);
 
-  if (!isHydrated) {
+  if (!isApiReady || !isHydrated) {
     return <LoadingState label="Menyiapkan aplikasi..." />;
   }
 
@@ -64,7 +72,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (autoLoginFailed) {
       return (
         <ErrorState
-          message="Tidak bisa terhubung ke server. Pastikan backend jalan dan HP satu jaringan dengan PC."
+          message="Tidak bisa terhubung ke server. Pastikan backend & tunnel di laptop sedang menyala."
           onRetry={() => setRetryCount((count) => count + 1)}
         />
       );

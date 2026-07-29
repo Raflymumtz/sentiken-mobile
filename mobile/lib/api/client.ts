@@ -1,14 +1,28 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
+import { resolveApiBaseUrl } from "@/lib/api/remoteConfig";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { ApiErrorBody } from "@/lib/types";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: DEFAULT_API_URL,
   timeout: 30000,
 });
+
+let initPromise: Promise<string> | null = null;
+
+/** Dipanggil sekali di awal (AuthGate) untuk resolve base URL API sebelum request lain berjalan. */
+export function initApiClient(options?: { force?: boolean }): Promise<string> {
+  if (options?.force || !initPromise) {
+    initPromise = resolveApiBaseUrl().then((baseUrl) => {
+      apiClient.defaults.baseURL = baseUrl;
+      return baseUrl;
+    });
+  }
+  return initPromise;
+}
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().accessToken;
@@ -25,7 +39,9 @@ export async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const response = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
+    const response = await axios.post(`${apiClient.defaults.baseURL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
     const { access_token, refresh_token } = response.data;
     await setTokens(access_token, refresh_token);
     return access_token;
