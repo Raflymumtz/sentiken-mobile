@@ -127,3 +127,23 @@ def test_frequent_terms_reflects_actual_dataset_words(client, auth_headers, popu
     assert resp.status_code == 200
     terms = [item["term"] for item in resp.json()["terms"]]
     assert "mantap" in terms or "bagus" in terms
+
+
+def test_aspect_comparison_per_app(client, auth_headers, populated_dashboard):
+    resp = client.get("/api/v1/dashboard/aspect-comparison", headers=auth_headers)
+    assert resp.status_code == 200
+    items = {item["app_name"]: {a["aspect"]: a for a in item["aspects"]} for item in resp.json()["items"]}
+
+    # PLN Mobile: "jelek lambat parah" (negative) menyebut aspek kecepatan lewat kata "lambat".
+    pln_kecepatan = items["PLN Mobile"]["kecepatan"]
+    assert pln_kecepatan["total_mentions"] == 1
+    assert pln_kecepatan["negative_count"] == 1
+    assert items["PLN Mobile"]["kemudahan"]["total_mentions"] == 0
+
+    # MyPertamina: "cepat dan mudah" (positive) menyebut kedua aspek sekaligus.
+    mp_kecepatan = items["MyPertamina"]["kecepatan"]
+    mp_kemudahan = items["MyPertamina"]["kemudahan"]
+    assert mp_kecepatan["total_mentions"] == 1
+    assert mp_kecepatan["positive_count"] == 1
+    assert mp_kemudahan["total_mentions"] == 1
+    assert mp_kemudahan["positive_count"] == 1

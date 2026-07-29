@@ -71,3 +71,24 @@ class FrequentTermsResponse(BaseModel):
     app_source_id: uuid.UUID | None
     label: str | None
     terms: list[FrequentTermItem]
+
+
+class AspectSentimentItem(BaseModel):
+    aspect: str
+    total_mentions: int
+    positive_count: int
+    negative_count: int
+    neutral_count: int
+    positive_percentage: float
+    negative_percentage: float
+    neutral_percentage: float
+
+
+class AppAspectComparisonItem(BaseModel):
+    app_source_id: uuid.UUID
+    app_name: str
+    aspects: list[AspectSentimentItem]
+
+
+class AspectComparisonResponse(BaseModel):
+    items: list[AppAspectComparisonItem]

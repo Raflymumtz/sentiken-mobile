@@ -372,3 +372,20 @@ export interface FrequentTerm {
   term: string;
   frequency: number;
 }
+
+export interface AspectSentimentItem {
+  aspect: string;
+  total_mentions: number;
+  positive_count: number;
+  negative_count: number;
+  neutral_count: number;
+  positive_percentage: number;
+  negative_percentage: number;
+  neutral_percentage: number;
+}
+
+export interface AppAspectComparisonItem {
+  app_source_id: string;
+  app_name: string;
+  aspects: AspectSentimentItem[];
+}

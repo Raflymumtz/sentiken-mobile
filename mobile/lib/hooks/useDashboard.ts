@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api/client";
 import type {
+  AppAspectComparisonItem,
   DashboardSummary,
   FrequentTerm,
   RatingDistributionItem,
@@ -64,6 +65,18 @@ export function useFrequentTerms(appSourceId?: string, label?: string) {
         params: { app_source_id: appSourceId, label },
       });
       return data.terms;
+    },
+  });
+}
+
+export function useAspectComparison() {
+  return useQuery({
+    queryKey: ["dashboard", "aspect-comparison"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ items: AppAspectComparisonItem[] }>(
+        "/dashboard/aspect-comparison",
+      );
+      return data.items;
     },
   });
 }

@@ -224,6 +224,18 @@ def get_rating_distribution(db: Session) -> list[dict]:
     return results
 
 
+# Kata akar (hasil stemming Sastrawi, lihat app/services/preprocessing.py)
+# yang menandakan ulasan sedang membahas aspek kecepatan/kemudahan aplikasi.
+# Mencakup bentuk positif maupun negatif dari aspek yang sama (mis. "cepat"
+# dan "lambat" sama-sama tentang aspek kecepatan) -- polaritasnya diambil
+# dari label sentimen ulasan tersebut, bukan dari kata itu sendiri. Daftar
+# kata diambil dari app/data/seed_dictionary.py agar konsisten dengan kamus
+# yang sudah dipakai untuk pelabelan.
+ASPECT_KEYWORDS: dict[str, set[str]] = {
+    "kecepatan": {"cepat", "lambat", "lemot", "lelet", "lag"},
+    "kemudahan": {"mudah", "gampang", "susah", "sulit", "ribet", "rumit"},
+}
+
 _STOP_TERMS = {"yang", "dan", "di", "ke", "ini", "itu", "untuk", "dengan", "nya"}
 
 
@@ -247,3 +259,72 @@ def get_frequent_terms(
                 counter[token] += 1
 
     return [{"term": term, "frequency": freq} for term, freq in counter.most_common(top_n)]
+
+
+def get_aspect_comparison(db: Session) -> list[dict]:
+    """Membandingkan sentimen ulasan per aspek (kecepatan, kemudahan) antar aplikasi.
+
+    Ulasan yang teks hasil preprocessing-nya memuat salah satu kata pada
+    ASPECT_KEYWORDS untuk suatu aspek dihitung sebagai "menyebut" aspek itu;
+    polaritasnya diambil dari label sentimen ulasan (hasil pelabelan kamus
+    yang sudah ada), bukan dianalisis ulang di sini.
+    """
+    sources = db.query(AppSource).filter(AppSource.deleted_at.is_(None)).all()
+    label_mode_map = _dataset_label_mode_map(db)
+    results = []
+
+    for source in sources:
+        rows = (
+            db.query(
+                PreprocessingResult.final_text,
+                SentimentLabel.label,
+                SentimentLabel.label_mode,
+                SentimentLabel.dataset_id,
+            )
+            .join(Review, Review.id == PreprocessingResult.review_id)
+            .join(SentimentLabel, SentimentLabel.review_id == Review.id)
+            .filter(Review.app_source_id == source.id)
+            .all()
+        )
+
+        aspect_counts = {name: {"positive": 0, "negative": 0, "neutral": 0} for name in ASPECT_KEYWORDS}
+
+        for final_text, label, label_mode, dataset_id in rows:
+            if label_mode_map.get(str(dataset_id)) != label_mode:
+                continue
+            if not final_text or label not in ("positive", "negative", "neutral"):
+                continue
+            tokens = set(final_text.split())
+            for aspect_name, keywords in ASPECT_KEYWORDS.items():
+                if tokens & keywords:
+                    aspect_counts[aspect_name][label] += 1
+
+        aspects_out = []
+        for aspect_name, counts in aspect_counts.items():
+            total = sum(counts.values())
+
+            def _pct(count: int, denom: int = total) -> float:
+                return round((count / denom) * 100, 2) if denom else 0.0
+
+            aspects_out.append(
+                {
+                    "aspect": aspect_name,
+                    "total_mentions": total,
+                    "positive_count": counts["positive"],
+                    "negative_count": counts["negative"],
+                    "neutral_count": counts["neutral"],
+                    "positive_percentage": _pct(counts["positive"]),
+                    "negative_percentage": _pct(counts["negative"]),
+                    "neutral_percentage": _pct(counts["neutral"]),
+                }
+            )
+
+        results.append(
+            {
+                "app_source_id": source.id,
+                "app_name": source.app_name,
+                "aspects": aspects_out,
+            }
+        )
+
+    return results

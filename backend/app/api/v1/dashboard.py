@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.dashboard import (
+    AspectComparisonResponse,
     DashboardSummary,
     FrequentTermsResponse,
     RatingDistributionResponse,
@@ -51,3 +52,8 @@ def frequent_terms(
 ):
     terms = dashboard_service.get_frequent_terms(db, app_source_id, label, top_n)
     return FrequentTermsResponse(app_source_id=app_source_id, label=label, terms=terms)
+
+
+@router.get("/aspect-comparison", response_model=AspectComparisonResponse)
+def aspect_comparison(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return AspectComparisonResponse(items=dashboard_service.get_aspect_comparison(db))

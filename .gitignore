@@ -15,6 +15,7 @@ backend/storage/
 backend/*.db
 backend/alembic_*.db
 backend/*.log
+backend/logs/
 
 # --- Mobile (Node / Expo) --------------------------------------------------------
 mobile/node_modules/
