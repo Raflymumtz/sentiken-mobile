@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ToastHost } from "@/components/ui/ToastHost";
@@ -22,7 +22,15 @@ const AUTO_LOGIN_PASSWORD = process.env.EXPO_PUBLIC_AUTO_LOGIN_PASSWORD;
 
 // Aplikasi ini dipakai sendiri di jaringan lokal, jadi login dilakukan otomatis
 // di background memakai kredensial bawaan alih-alih menampilkan layar login.
+//
+// PENTING: expo-router mewajibkan Root Layout merender <Slot /> (atau
+// navigator lain) sejak render PERTAMA -- kalau tidak, navigasi apa pun
+// (termasuk router.replace() di bawah) akan crash dengan error "Attempted
+// to navigate before mounting the Root Layout component". Karena itu Slot
+// di bawah SELALU dirender; status loading/gagal-konek ditampilkan sebagai
+// overlay di atasnya, bukan menggantikannya.
 function AuthGate({ children }: { children: React.ReactNode }) {
+  const { colors } = useThemeColors();
   const { accessToken, isHydrated, hydrate } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
@@ -64,23 +72,40 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [accessToken, isHydrated, segments, router]);
 
-  if (!isApiReady || !isHydrated) {
-    return <LoadingState label="Menyiapkan aplikasi..." />;
-  }
+  const isPreparing = !isApiReady || !isHydrated;
+  const isConnecting = !isPreparing && !accessToken && !autoLoginFailed;
+  const isConnectFailed = !isPreparing && !accessToken && autoLoginFailed;
 
-  if (!accessToken) {
-    if (autoLoginFailed) {
-      return (
-        <ErrorState
-          message="Tidak bisa terhubung ke server. Pastikan backend & tunnel di laptop sedang menyala."
-          onRetry={() => setRetryCount((count) => count + 1)}
-        />
-      );
-    }
-    return <LoadingState label="Menghubungkan..." />;
-  }
+  return (
+    <View style={{ flex: 1 }}>
+      {children}
 
-  return <>{children}</>;
+      {isPreparing || isConnecting ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <LoadingState label={isPreparing ? "Menyiapkan aplikasi..." : "Menghubungkan..."} />
+        </View>
+      ) : null}
+
+      {isConnectFailed ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <ErrorState
+            message="Tidak bisa terhubung ke server. Pastikan backend & tunnel di laptop sedang menyala."
+            onRetry={() => setRetryCount((count) => count + 1)}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 export default function RootLayout() {
