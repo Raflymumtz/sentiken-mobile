@@ -54,7 +54,7 @@ export default function AppSourcesScreen() {
       </ScreenContainer>
     );
   }
-  if (sourcesQuery.isError) {
+  if (sourcesQuery.isError && !sourcesQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => sourcesQuery.refetch()} />

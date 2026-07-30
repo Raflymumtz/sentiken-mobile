@@ -83,7 +83,7 @@ export default function DictionaryScreen() {
       </ScreenContainer>
     );
   }
-  if (entriesQuery.isError) {
+  if (entriesQuery.isError && !entriesQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => entriesQuery.refetch()} />

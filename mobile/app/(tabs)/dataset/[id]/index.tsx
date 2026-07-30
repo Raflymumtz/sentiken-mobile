@@ -36,7 +36,7 @@ export default function DatasetDetailScreen() {
     );
   }
 
-  if (datasetQuery.isError || !datasetQuery.data) {
+  if (datasetQuery.isError && !datasetQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => datasetQuery.refetch()} />
@@ -46,6 +46,7 @@ export default function DatasetDetailScreen() {
 
   const dataset = datasetQuery.data;
   const summary = summaryQuery.data;
+  if (!dataset) return null;
 
   const handleDelete = async () => {
     try {

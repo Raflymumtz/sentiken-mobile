@@ -39,7 +39,7 @@ export default function PerbandinganScreen() {
     );
   }
 
-  if (comparisonQuery.isError) {
+  if (comparisonQuery.isError && !comparisonQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => comparisonQuery.refetch()} />

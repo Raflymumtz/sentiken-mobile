@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { QueryClient, useIsRestoring } from "@tanstack/react-query";
+import { QueryClient, useIsRestoring, useQueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +13,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { initApiClient } from "@/lib/api/client";
 import { useLogin } from "@/lib/hooks/useAuth";
 import { useAuthStore } from "@/lib/store/authStore";
+import { useConnectivityStore } from "@/lib/store/connectivityStore";
 import { useThemeColors } from "@/lib/hooks/useThemeColors";
 
 // gcTime menentukan berapa lama data query disimpan di memori/disk sebelum
@@ -55,13 +56,20 @@ const AUTO_LOGIN_PASSWORD = process.env.EXPO_PUBLIC_AUTO_LOGIN_PASSWORD;
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { colors } = useThemeColors();
   const { accessToken, isHydrated, hasEverAuthenticated, hydrate } = useAuthStore();
+  const isBackendReachable = useConnectivityStore((s) => s.isBackendReachable);
   const isRestoringCache = useIsRestoring();
   const segments = useSegments();
   const router = useRouter();
   const loginMutation = useLogin();
+  const queryClient = useQueryClient();
   const [autoLoginFailed, setAutoLoginFailed] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  const retryNow = () => {
+    setRetryCount((count) => count + 1);
+    queryClient.refetchQueries().catch(() => undefined);
+  };
 
   // Resolve URL backend dari GitHub (bisa berubah kalau tunnel di-restart di
   // laptop) sebelum request lain (termasuk auto-login) dijalankan.
@@ -98,9 +106,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isPreparing = !isApiReady || !isHydrated || isRestoringCache;
   const isConnecting = !isPreparing && !accessToken && !autoLoginFailed;
-  // Backend tidak terjangkau, tapi HP ini pernah berhasil login sebelumnya --
-  // masuk mode lihat-saja memakai data tersimpan alih-alih memblokir total.
-  const isOfflineViewable = !isPreparing && !accessToken && autoLoginFailed && hasEverAuthenticated;
+  // Backend tidak terjangkau -- baik karena auto-login gagal (token
+  // hilang/tak ada) maupun karena token masih tersimpan & dianggap valid
+  // tapi request ke backend gagal jaringan (terdeteksi lewat interceptor
+  // axios, lihat lib/api/client.ts). Selama HP ini pernah berhasil login
+  // sebelumnya, masuk mode lihat-saja memakai data tersimpan alih-alih
+  // memblokir total.
+  const isDisconnected = (!accessToken && autoLoginFailed) || (!!accessToken && !isBackendReachable);
+  const isOfflineViewable = !isPreparing && isDisconnected && hasEverAuthenticated;
   // Belum pernah berhasil connect sama sekali (mis. HP baru pertama kali
   // dipakai) -- tidak ada data tersimpan apa pun untuk ditampilkan.
   const isBlockedNoData = !isPreparing && !accessToken && autoLoginFailed && !hasEverAuthenticated;
@@ -113,16 +126,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!isOfflineViewable) return;
     const interval = setInterval(() => {
       setRetryCount(retryCountRef.current + 1);
+      queryClient.refetchQueries().catch(() => undefined);
     }, AUTO_RETRY_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [isOfflineViewable]);
+  }, [isOfflineViewable, queryClient]);
 
   if (isBlockedNoData) {
     return (
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>
         <ErrorState
           message="Tidak bisa terhubung ke server. Pastikan backend & tunnel di laptop sedang menyala."
-          onRetry={() => setRetryCount((count) => count + 1)}
+          onRetry={retryNow}
         />
       </View>
     );
@@ -130,7 +144,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={{ flex: 1 }}>
-      {isOfflineViewable ? <OfflineBanner onRetry={() => setRetryCount((count) => count + 1)} /> : null}
+      {isOfflineViewable ? <OfflineBanner onRetry={retryNow} /> : null}
 
       {children}
 

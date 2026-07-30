@@ -68,7 +68,7 @@ export default function CollectionScreen() {
       </ScreenContainer>
     );
   }
-  if (datasetQuery.isError || !datasetQuery.data) {
+  if (datasetQuery.isError && !datasetQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => datasetQuery.refetch()} />
@@ -77,6 +77,7 @@ export default function CollectionScreen() {
   }
 
   const dataset = datasetQuery.data;
+  if (!dataset) return null;
 
   const onSubmit = async (values: FormValues) => {
     try {

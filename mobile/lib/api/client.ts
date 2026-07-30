@@ -2,6 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 import { resolveApiBaseUrl } from "@/lib/api/remoteConfig";
 import { useAuthStore } from "@/lib/store/authStore";
+import { useConnectivityStore } from "@/lib/store/connectivityStore";
 import type { ApiErrorBody } from "@/lib/types";
 
 const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -52,8 +53,16 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    useConnectivityStore.getState().setBackendReachable(true);
+    return response;
+  },
   async (error: AxiosError) => {
+    // error.response ada => server sempat menjawab (walau statusnya error,
+    // mis. 401/404/500) => backend tetap terjangkau. Kalau tidak ada sama
+    // sekali => gagal jaringan/timeout => backend/tunnel kemungkinan mati.
+    useConnectivityStore.getState().setBackendReachable(!!error.response);
+
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {

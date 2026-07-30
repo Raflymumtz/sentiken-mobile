@@ -32,7 +32,7 @@ export default function ProsesIndexScreen() {
     );
   }
 
-  if (datasetsQuery.isError) {
+  if (datasetsQuery.isError && !datasetsQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => datasetsQuery.refetch()} />

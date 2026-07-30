@@ -36,7 +36,7 @@ export default function DashboardScreen() {
     );
   }
 
-  if (summaryQuery.isError || !summaryQuery.data) {
+  if (summaryQuery.isError && !summaryQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => summaryQuery.refetch()} />
@@ -45,6 +45,7 @@ export default function DashboardScreen() {
   }
 
   const summary = summaryQuery.data;
+  if (!summary) return null;
 
   if (!summary.has_data) {
     return (

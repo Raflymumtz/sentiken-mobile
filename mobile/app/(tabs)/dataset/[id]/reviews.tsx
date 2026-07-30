@@ -42,7 +42,7 @@ export default function DatasetReviewsScreen() {
     );
   }
 
-  if (reviewsQuery.isError) {
+  if (reviewsQuery.isError && !reviewsQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => reviewsQuery.refetch()} />

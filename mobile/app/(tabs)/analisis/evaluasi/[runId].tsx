@@ -26,7 +26,7 @@ export default function EvaluasiDetailScreen() {
     );
   }
 
-  if (metricsQuery.isError || !metricsQuery.data) {
+  if (metricsQuery.isError && !metricsQuery.data) {
     return (
       <ScreenContainer>
         <ErrorState message="Hasil evaluasi belum tersedia." onRetry={() => metricsQuery.refetch()} />
@@ -35,6 +35,7 @@ export default function EvaluasiDetailScreen() {
   }
 
   const metrics = metricsQuery.data;
+  if (!metrics) return null;
   const { labels, matrix } = metrics.confusion_matrix;
 
   return (

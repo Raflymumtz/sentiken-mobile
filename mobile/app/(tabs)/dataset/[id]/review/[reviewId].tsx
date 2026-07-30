@@ -24,7 +24,7 @@ export default function ReviewDetailScreen() {
     );
   }
 
-  if (query.isError || !query.data) {
+  if (query.isError && !query.data) {
     return (
       <ScreenContainer>
         <ErrorState onRetry={() => query.refetch()} />
@@ -33,6 +33,7 @@ export default function ReviewDetailScreen() {
   }
 
   const review = query.data;
+  if (!review) return null;
   const label = review.sentiment_labels?.[0];
   const pre = review.preprocessing_result;
 
